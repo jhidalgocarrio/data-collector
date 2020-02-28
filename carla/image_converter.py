@@ -24,6 +24,11 @@ except ImportError:
 
 from . import sensor
 
+def replace_zero_by_min(data):
+  min_nonzero = numpy.min(data[numpy.nonzero(data)])
+  data[data == 0] = min_nonzero
+  return data
+
 
 def to_bgra_array(image):
     """Convert a CARLA raw image to a BGRA numpy array."""
@@ -98,11 +103,12 @@ def depth_to_logarithmic_grayscale(image):
     "max_depth" is used to omit the points that are far enough.
     """
     normalized_depth = depth_to_array(image)
+    normalized_depth = replace_zero_by_min(normalized_depth)
     # Convert to logarithmic depth.
     logdepth = numpy.ones(normalized_depth.shape) + \
         (numpy.log(normalized_depth) / 5.70378)
     logdepth = numpy.clip(logdepth, 0.0, 1.0)
-    logdepth *= 255.0
+    logdepth = numpy.array(logdepth * 255.0, dtype=numpy.dtype("uint8"))
     # Expand to three colors.
     return numpy.repeat(logdepth[:, :, numpy.newaxis], 3, axis=2)
 

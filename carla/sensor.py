@@ -146,12 +146,26 @@ class Image(SensorData):
 
     def __init__(self, frame_number, width, height, image_type, fov, raw_data):
         super(Image, self).__init__(frame_number=frame_number)
-        assert len(raw_data) == 4 * width * height
+        assert len(raw_data) >= width * height
+        if len(raw_data) == width * height:
+            tmp_data = numpy.ones((height, width, 4), dtype=numpy.uint8)
+            tmp_data[:,:,0] = numpy.nan_to_num(numpy.reshape(raw_data, (height,width)))
+            tmp_data[:,:,1] = numpy.nan_to_num(numpy.reshape(raw_data, (height,width)))
+            tmp_data[:,:,2] = numpy.nan_to_num(numpy.reshape(raw_data, (height,width)))
+            tmp_data[:,:, 3] *= 255
+            self.raw_data = tmp_data.ravel()
+        elif len(raw_data) == 3 * width * height:
+            tmp_data = numpy.ones((height, width, 4), dtype=numpy.uint8)
+            tmp_data[:,:,0:3] = numpy.nan_to_num(numpy.reshape(raw_data, (height,width, 3)))
+            tmp_data[:,:, 3] *= 255
+            self.raw_data = tmp_data.ravel()
+        else:
+            self.raw_data = raw_data
+
         self.width = width
         self.height = height
         self.type = image_type
         self.fov = fov
-        self.raw_data = raw_data
         self._converted_data = None
 
     @property
