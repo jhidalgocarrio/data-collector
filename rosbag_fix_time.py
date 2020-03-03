@@ -9,8 +9,8 @@ import argparse
 import os
 
 
-out = rosbag.Bag("/home/javi/ros/datasets/mvsec/outdoor_night1_davis_left_data_and_gt.bag", 'w')
-bag = rosbag.Bag('/home/javi/ros/datasets/mvsec/2020-02-28-18-33-29.bag', 'r')
+out = rosbag.Bag("/home/javi/ros/datasets/mvsec/paris_night_drive_events.bag", 'w')
+bag = rosbag.Bag('/home/javi/ros/datasets/mvsec/2020-03-02-01-24-29.bag', 'r')
 
 for topic, msg, t in bag.read_messages():
     print ("t: %s new t: %s" %(t, msg.header.stamp))
