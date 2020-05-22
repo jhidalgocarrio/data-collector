@@ -10,6 +10,8 @@ import rosbag
 import os
 import re
 import sys
+import matplotlib as mpl
+import matplotlib.cm as cm
 from carla.image_converter import *
 from carla.sensor import *
 
@@ -46,30 +48,42 @@ def run():
     bridge = cv_bridge.CvBridge()
 
     i = 0
-    for image in images:
+    for topic, image, t in bag.read_messages(topics=[FLAGS.topic]):
         if i == maxn:
             break
 
-        f.write("%d %i.%i\n" % (i, image.message.header.stamp.secs, image.message.header.stamp.nsecs))
-        curr_img = bridge.imgmsg_to_cv2(image.message)
+        f.write("%d %f\n" % (i, image.header.stamp.to_sec()))
+        curr_img = bridge.imgmsg_to_cv2(image)
 
         if FLAGS.output_folder:
             # Save to numpy
             np.save('%s/data/depth_%010d.npy' % (FLAGS.output_folder, i), curr_img)
 
         if FLAGS.visualize:
-            curr_img = np.nan_to_num(curr_img)
-            depth = np.ones((curr_img.shape[0], curr_img.shape[1], 4), dtype=np.uint8)
-            depth[:,:,0] = np.nan_to_num(curr_img)
-            depth[:,:,1] = np.nan_to_num(curr_img)
-            depth[:,:,2] = np.nan_to_num(curr_img)
+            #curr_img = np.nan_to_num(curr_img, nan=150.00) # only works in numpy >=1.17
+            where_are_nan = np.isnan(curr_img)
+            other_img = curr_img.copy()
+            other_img[where_are_nan] = np.max(np.nan_to_num(curr_img))
+            depth = np.ones((other_img.shape[0], other_img.shape[1], 4), dtype=np.uint8)
+            depth[:,:,0] = np.nan_to_num(other_img)
+            depth[:,:,1] = np.nan_to_num(other_img)
+            depth[:,:,2] = np.nan_to_num(other_img)
             depth[:,:,3] *= 255
             img = Image(i, depth.shape[1], depth.shape[0], image_type='Depth', fov=85, raw_data=depth.ravel())
             # Convet to array
-            depth = depth_to_array(img)
-            depthviz = depth
+            depth = depth_to_logarithmic_grayscale(img)
+            depth = depth[:, :, 0]
+            depth = depth / 255.0
+            # Convert to color map
+            vmax = np.percentile(depth, 95)
+            normalizer = mpl.colors.Normalize(vmin=depth.min(), vmax=vmax)
+            mapper = cm.ScalarMappable(norm=normalizer, cmap='magma_r')
+            img = mapper.to_rgba(depth)
+            img[:,:,0:3] = img[:,:,0:3][...,::-1]
+            depthviz = img
             cv2.imshow(FLAGS.name, depthviz)
             cv2.waitKey(1)
+            cv2.imwrite('%s/data/frame_%010d.png' % (FLAGS.output_folder, i), img*255.0)
 
         print('\r%d / %d' % (i, maxn), end='')
         sys.stdout.flush()

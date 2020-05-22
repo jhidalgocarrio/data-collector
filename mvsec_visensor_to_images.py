@@ -50,7 +50,7 @@ def run():
         if i == maxn:
             break
 
-        f.write("%d %i.%i\n" % (i, image.message.header.stamp.secs, image.message.header.stamp.nsecs))
+        f.write("%d %f\n" % (i, image.message.header.stamp.to_sec()))
         curr_img = bridge.imgmsg_to_cv2(image.message)
         # 180 degrees
         rot = cv2.getRotationMatrix2D((curr_img.shape[1]/2, curr_img.shape[0]/2), 180, 1.0)

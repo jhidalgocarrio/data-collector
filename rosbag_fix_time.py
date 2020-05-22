@@ -1,6 +1,7 @@
   
 #!/usr/bin/env python
 import sys
+import argparse
 import roslib;
 import rospy
 import rosbag
@@ -8,9 +9,22 @@ from rospy import rostime
 import argparse
 import os
 
+def FLAGS():
+    parser = argparse.ArgumentParser("""Datatype timestamp to rosbag timestamp""")
 
-out = rosbag.Bag("/home/javi/ros/datasets/mvsec/paris_night_drive_events.bag", 'w')
-bag = rosbag.Bag('/home/javi/ros/datasets/mvsec/2020-03-02-01-24-29.bag', 'r')
+    # training / validation dataset
+    parser.add_argument("--bag", default="", required=True)
+    parser.add_argument("--out", default="", required=True)
+
+    flags = parser.parse_args()
+
+    return flags
+
+
+flags = FLAGS()
+
+bag = rosbag.Bag(flags.bag, 'r')
+out = rosbag.Bag(flags.out, 'w')
 
 for topic, msg, t in bag.read_messages():
     print ("t: %s new t: %s" %(t, msg.header.stamp))
